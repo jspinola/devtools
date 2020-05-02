@@ -1,0 +1,70 @@
+#!/bin/bash
+
+CURRENT_BRANCH=$(git branch &>/dev/null; if [ $? -eq 0 ]; then echo "$(git branch | grep '^*' |sed s/\*\ //)"; fi)
+
+if [[ $(git branch --list develop) ]]; then
+  MAIN_BRANCH=develop
+elif [[ $(git branch --list dev) ]]; then
+  MAIN_BRANCH=dev
+elif [[ $(git branch --list master) ]]; then
+  MAIN_BRANCH=master
+fi
+
+if [ "${MAIN_BRANCH}" = "" ]; then
+  echo "No recognised main branch name found."
+  echo "Supported main branches names: develop, dev, master"
+  echo "Current branches"
+  echo "$(git branch --list)"
+  exit
+fi
+
+
+if [ "${CURRENT_BRANCH}" != "" ]; then
+  git checkout ${MAIN_BRANCH}
+  git fetch -p -v
+  # check for local wip changes and stash them
+  STASH_ID=$(git stash create branch-sync-clean-stash)
+  if [ "${STASH_ID}" != "" ]; then
+    git stash
+  fi
+
+  # pull changes
+  git pull -v
+
+  # Checkout all remote branches
+  # git branch --merged | egrep -v "(^\*|master|develop|dev)" | xargs git branch -d
+
+  for _MERGED_BRANCH in $(git branch --merged | egrep -v "(^\*|master|develop|dev|release)" | awk '{ print $1 }')
+  do
+    if [ "${_MERGED_BRANCH}" != "" ]; then
+      git branch -d ${_MERGED_BRANCH} -v
+    fi
+    
+  done
+
+  # go back the initial branch and pop wip changes if any
+  # check if the branch has been deleted (if merged in remote), if so, check out branch and rebase else stay in main branch
+  if [[ $(git branch --list ${CURRENT_BRANCH}) ]]; then
+    git checkout ${CURRENT_BRANCH}
+    git rebase ${MAIN_BRANCH} -v
+  fi
+
+  # pop stash
+  if [ "${STASH_ID}" != "" ]; then
+      git stash pop -v
+  fi
+
+  # TARGET="${1}"
+  # if [ "${TARGET}" == "" ]; then
+  #   TRACKING_REPOSITORY="$(git config branch.${CURRENT_BRANCH}.remote)"
+  #   # there is a tracking repository
+  #   if [ "${TRACKING_REPOSITORY}" != "" ]; then
+  #     REMOTE_REPOSITORY="${TRACKING_REPOSITORY}"
+  #     REMOTE_BRANCH="$(git config branch.${CURRENT_BRANCH}.merge | sed -e 's#^[^/]*/[^/]*/##')"
+  #     TARGET="${REMOTE_REPOSITORY}/${REMOTE_BRANCH}"
+  #   fi
+  # fi
+  # echo "To: ${TARGET}"
+  # echo ""
+  # git log ${TARGET}..
+fi

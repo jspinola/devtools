@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [[ $(git branch --list --remote origin/develop) ]]; then
+  MAIN_BRANCH=develop
+elif [[ $(git branch --list --remote origin/dev) ]]; then
+  MAIN_BRANCH=dev
+elif [[ $(git branch --list --remote origin/master) ]]; then
+  MAIN_BRANCH=master
+fi
+
+git fetch -p -v
+git rebase origin/${MAIN_BRANCH} -v
