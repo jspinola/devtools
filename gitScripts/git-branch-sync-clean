@@ -20,14 +20,14 @@ fi
 
 
 if [ "${CURRENT_BRANCH}" != "" ]; then
-  git checkout ${MAIN_BRANCH}
-  git fetch -p -v
   # check for local wip changes and stash them
   STASH_ID=$(git stash create branch-sync-clean-stash)
   if [ "${STASH_ID}" != "" ]; then
     git stash
   fi
 
+  git checkout ${MAIN_BRANCH}
+  git fetch -p -v
   # pull changes
   git pull -v
 
