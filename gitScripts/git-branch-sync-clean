@@ -51,7 +51,7 @@ if [ "${CURRENT_BRANCH}" != "" ]; then
 
   # pop stash
   if [ "${STASH_ID}" != "" ]; then
-      git stash pop -v
+      git stash pop
   fi
 
   # TARGET="${1}"
